@@ -15,7 +15,7 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const UNLOCK_AT = 14
+const UNLOCK_AT = 3
 const FULL_REPORT_AT = 21
 
 function getLastSevenDates(today: string): string[] {
