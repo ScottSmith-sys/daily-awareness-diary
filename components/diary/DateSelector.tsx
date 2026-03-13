@@ -1,6 +1,4 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export interface DateInfo {
   date: string
@@ -16,16 +14,14 @@ interface DateSelectorProps {
 }
 
 export default function DateSelector({ dates, selectedDate }: DateSelectorProps) {
-  const router = useRouter()
-
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
       {dates.map(d => {
         const isSelected = d.date === selectedDate
         return (
-          <button
+          <Link
             key={d.date}
-            onClick={() => router.push(`/dashboard?date=${d.date}`)}
+            href={`/dashboard?date=${d.date}`}
             className={`flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 min-w-[52px] transition-all focus:outline-none focus:ring-2 focus:ring-[#0079a7] focus:ring-offset-1 ${
               isSelected
                 ? 'bg-[#0079a7] text-white shadow-sm'
@@ -48,7 +44,7 @@ export default function DateSelector({ dates, selectedDate }: DateSelectorProps)
                     : 'bg-slate-200'
               }`}
             />
-          </button>
+          </Link>
         )
       })}
     </div>

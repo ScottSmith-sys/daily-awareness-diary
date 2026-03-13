@@ -13,6 +13,8 @@ import StreakTracker from '@/components/diary/StreakTracker'
 import type { DateInfo } from '@/components/diary/DateSelector'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const UNLOCK_AT = 14
 const FULL_REPORT_AT = 21
 
