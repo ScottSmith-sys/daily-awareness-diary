@@ -31,6 +31,7 @@ export default function NavBar() {
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className={linkClass('/dashboard')}>Today</Link>
           <Link href="/entries" className={linkClass('/entries')}>Past Entries</Link>
+          <Link href="/reports" className={linkClass('/reports')}>Reports</Link>
           <Link href="/account" className={linkClass('/account')}>Account</Link>
           <Button variant="ghost" onClick={signOut} className="text-sm">Sign Out</Button>
         </div>

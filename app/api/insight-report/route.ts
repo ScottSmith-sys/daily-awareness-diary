@@ -67,6 +67,19 @@ export async function POST() {
           }
         }
 
+        // Save report to database
+        let reportId: string | null = null
+        try {
+          const { data: saved } = await supabase
+            .from('insight_reports')
+            .insert({ user_id: user.id, report_text: fullReport, entry_count: entries.length })
+            .select('id')
+            .single()
+          reportId = saved?.id ?? null
+        } catch (dbError) {
+          console.error('Failed to save report:', dbError)
+        }
+
         // Send email after full report is generated
         let emailSent = false
         if (process.env.RESEND_API_KEY && user.email) {
@@ -112,7 +125,7 @@ export async function POST() {
 
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ done: true, emailSent, entryCount: entries.length })}\n\n`
+            `data: ${JSON.stringify({ done: true, emailSent, entryCount: entries.length, reportId })}\n\n`
           )
         )
       } catch (error) {
