@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { getTodayDate, formatDisplayDate } from '@/lib/utils'
+import {
+  getTodayDate,
+  formatDisplayDate,
+  calcCurrentStreak,
+  calcLongestStreak,
+  getLast30Activity,
+} from '@/lib/utils'
 import Card from '@/components/ui/Card'
 import DiaryForm from '@/components/diary/DiaryForm'
 import DateSelector from '@/components/diary/DateSelector'
+import StreakTracker from '@/components/diary/StreakTracker'
 import type { DateInfo } from '@/components/diary/DateSelector'
 import Link from 'next/link'
 
@@ -36,7 +43,7 @@ export default async function DashboardPage({
   const selectedDate =
     params.date && sevenDates.includes(params.date) ? params.date : today
 
-  const [{ data: weekEntries }, { count: entryCount }] = await Promise.all([
+  const [{ data: weekEntries }, { data: allDateRows }] = await Promise.all([
     supabase
       .from('diary_entries')
       .select('*')
@@ -44,12 +51,26 @@ export default async function DashboardPage({
       .in('entry_date', sevenDates),
     supabase
       .from('diary_entries')
-      .select('*', { count: 'exact', head: true })
+      .select('entry_date')
       .eq('user_id', user!.id),
   ])
 
   const entryMap = new Map((weekEntries ?? []).map(e => [e.entry_date, e]))
   const selectedEntry = entryMap.get(selectedDate) ?? null
+
+  const allDates = (allDateRows ?? []).map(r => r.entry_date as string)
+  const allDateSet = new Set(allDates)
+  const n = allDates.length
+
+  const currentStreak = calcCurrentStreak(allDateSet, today)
+  const longestStreak = calcLongestStreak(allDates)
+  const last30 = getLast30Activity(allDateSet, today)
+
+  const todayHasEntry = allDateSet.has(today)
+  const MILESTONES = [7, 14, 21] as const
+  const milestone = todayHasEntry && MILESTONES.includes(currentStreak as 7 | 14 | 21)
+    ? (currentStreak as 7 | 14 | 21)
+    : null
 
   const dateInfos: DateInfo[] = sevenDates.map(date => {
     const [y, m, d] = date.split('-').map(Number)
@@ -67,7 +88,6 @@ export default async function DashboardPage({
   const heading = isToday ? "Today's Entry" : formatDisplayDate(selectedDate)
   const subheading = isToday ? formatDisplayDate(today) : selectedEntry ? 'Editing existing entry' : 'No entry yet — start writing'
 
-  const n = entryCount ?? 0
   const unlocked = n >= UNLOCK_AT
   const isFull = n >= FULL_REPORT_AT
   const toUnlock = UNLOCK_AT - n
@@ -97,6 +117,14 @@ export default async function DashboardPage({
       </div>
 
       <DateSelector dates={dateInfos} selectedDate={selectedDate} />
+
+      <StreakTracker
+        currentStreak={currentStreak}
+        longestStreak={longestStreak}
+        totalEntries={n}
+        last30={last30}
+        milestone={milestone}
+      />
 
       {/* Insight Report banner */}
       <div className={`rounded-2xl border p-5 transition-all ${
