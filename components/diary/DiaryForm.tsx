@@ -21,8 +21,15 @@ type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
 const empty: DiaryEntry = { q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: '', q8: '', q9: '', q10: '' }
 
+function normalize(data: Partial<DiaryEntry> | null): DiaryEntry {
+  const row = data as Record<string, unknown> | null
+  return Object.fromEntries(
+    Object.keys(empty).map(k => [k, typeof row?.[k] === 'string' ? row[k] : ''])
+  ) as unknown as DiaryEntry
+}
+
 export default function DiaryForm({ initialData, entryDate, userId }: DiaryFormProps) {
-  const [answers, setAnswers] = useState<DiaryEntry>(initialData ?? empty)
+  const [answers, setAnswers] = useState<DiaryEntry>(normalize(initialData))
   const [status, setStatus] = useState<SaveStatus>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const supabase = createClient()
