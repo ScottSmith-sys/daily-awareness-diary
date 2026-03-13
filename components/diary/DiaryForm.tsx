@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button'
 
 interface DiaryEntry {
   q1: string; q2: string; q3: string; q4: string; q5: string
-  q6: string; q7: string; q8: string; q9: string
+  q6: string; q7: string; q8: string; q9: string; q10: string
 }
 
 interface DiaryFormProps {
@@ -19,7 +19,7 @@ interface DiaryFormProps {
 
 type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
 
-const empty: DiaryEntry = { q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: '', q8: '', q9: '' }
+const empty: DiaryEntry = { q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: '', q8: '', q9: '', q10: '' }
 
 export default function DiaryForm({ initialData, entryDate, userId }: DiaryFormProps) {
   const [answers, setAnswers] = useState<DiaryEntry>(initialData ?? empty)
@@ -75,7 +75,7 @@ export default function DiaryForm({ initialData, entryDate, userId }: DiaryFormP
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{answeredCount} of 9 questions answered</p>
+        <p className="text-sm text-slate-500">{answeredCount} of {QUESTIONS.length} questions answered</p>
         <span className={`text-xs ${statusColor[status]}`}>{statusLabel[status]}</span>
       </div>
 
@@ -85,6 +85,7 @@ export default function DiaryForm({ initialData, entryDate, userId }: DiaryFormP
           questionNumber={i + 1}
           label={q.label}
           prompt={q.prompt}
+          hints={q.hints}
           value={answers[q.id as keyof DiaryEntry]}
           onChange={val => handleChange(q.id as keyof DiaryEntry, val)}
         />
@@ -95,6 +96,14 @@ export default function DiaryForm({ initialData, entryDate, userId }: DiaryFormP
         <Button onClick={() => save(answers)} loading={status === 'saving'}>
           Save Entry
         </Button>
+      </div>
+
+      <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
+        <p className="text-xs text-slate-400 leading-relaxed">
+          The purpose of this diary is not perfection. It is awareness.<br />
+          Over time, patterns will emerge. Those patterns reveal who you are, how you live, and what truly matters.<br />
+          <span className="italic">When you can see clearly, you can move forward with intention.</span>
+        </p>
       </div>
     </div>
   )
