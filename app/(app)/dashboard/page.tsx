@@ -2,36 +2,76 @@ import { createClient } from '@/lib/supabase/server'
 import { getTodayDate, formatDisplayDate } from '@/lib/utils'
 import Card from '@/components/ui/Card'
 import DiaryForm from '@/components/diary/DiaryForm'
+import DateSelector from '@/components/diary/DateSelector'
+import type { DateInfo } from '@/components/diary/DateSelector'
 import Link from 'next/link'
 
 const UNLOCK_AT = 14
 const FULL_REPORT_AT = 21
 
-export default async function DashboardPage() {
+function getLastSevenDates(today: string): string[] {
+  const [y, m, d] = today.split('-').map(Number)
+  const dates: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(y, m - 1, d - i)
+    dates.push(date.toLocaleDateString('en-CA'))
+  }
+  return dates
+}
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>
+}) {
+  const params = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const today = getTodayDate()
+  const sevenDates = getLastSevenDates(today)
 
-  const [{ data: entry }, { count: entryCount }] = await Promise.all([
+  const selectedDate =
+    params.date && sevenDates.includes(params.date) ? params.date : today
+
+  const [{ data: weekEntries }, { count: entryCount }] = await Promise.all([
     supabase
       .from('diary_entries')
       .select('*')
       .eq('user_id', user!.id)
-      .eq('entry_date', today)
-      .single(),
+      .in('entry_date', sevenDates),
     supabase
       .from('diary_entries')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user!.id),
   ])
 
+  const entryMap = new Map((weekEntries ?? []).map(e => [e.entry_date, e]))
+  const selectedEntry = entryMap.get(selectedDate) ?? null
+
+  const dateInfos: DateInfo[] = sevenDates.map(date => {
+    const [y, m, d] = date.split('-').map(Number)
+    const dateObj = new Date(y, m - 1, d)
+    return {
+      date,
+      hasEntry: entryMap.has(date),
+      isToday: date === today,
+      label: date === today ? 'Today' : DAY_LABELS[dateObj.getDay()],
+      dayNum: String(d),
+    }
+  })
+
+  const isToday = selectedDate === today
+  const heading = isToday ? "Today's Entry" : formatDisplayDate(selectedDate)
+  const subheading = isToday ? formatDisplayDate(today) : selectedEntry ? 'Editing existing entry' : 'No entry yet — start writing'
+
   const n = entryCount ?? 0
   const unlocked = n >= UNLOCK_AT
   const isFull = n >= FULL_REPORT_AT
   const toUnlock = UNLOCK_AT - n
   const toFull = FULL_REPORT_AT - n
-
   const progressPct = Math.min(100, Math.round((n / UNLOCK_AT) * 100))
 
   let statusLine: string
@@ -52,16 +92,18 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Today&apos;s Entry</h1>
-        <p className="text-sm text-slate-500 mt-1">{formatDisplayDate(today)}</p>
+        <h1 className="text-2xl font-bold text-slate-800">{heading}</h1>
+        <p className="text-sm text-slate-500 mt-1">{subheading}</p>
       </div>
 
+      <DateSelector dates={dateInfos} selectedDate={selectedDate} />
+
+      {/* Insight Report banner */}
       <div className={`rounded-2xl border p-5 transition-all ${
         unlocked
           ? 'border-[#0079a7] bg-gradient-to-r from-[#0079a7] to-[#005f84] text-white shadow-md'
           : 'border-slate-200 bg-white text-slate-800'
       }`}>
-        {/* Progress bar — only shown when not yet unlocked */}
         {!unlocked && (
           <div className="mb-4">
             <div className="flex justify-between items-baseline mb-1.5">
@@ -106,14 +148,12 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Motivating micro-copy when close to unlocking */}
         {!unlocked && n > 0 && n >= UNLOCK_AT - 3 && (
           <p className="mt-3 text-xs text-[#0079a7] font-medium">
             Almost there — keep going ✦
           </p>
         )}
 
-        {/* Teaser when unlocked but not full */}
         {unlocked && !isFull && (
           <p className="mt-2 text-xs text-blue-200">
             {toFull} more {toFull === 1 ? 'entry' : 'entries'} to unlock your Full Report with deeper insights
@@ -123,8 +163,9 @@ export default async function DashboardPage() {
 
       <Card>
         <DiaryForm
-          initialData={entry ?? null}
-          entryDate={today}
+          key={selectedDate}
+          initialData={selectedEntry}
+          entryDate={selectedDate}
           userId={user!.id}
         />
       </Card>
