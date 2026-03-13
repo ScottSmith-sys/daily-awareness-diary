@@ -20,9 +20,9 @@ export async function POST() {
     .eq('user_id', user.id)
     .order('entry_date', { ascending: true })
 
-  if (!entries || entries.length < 21) {
+  if (!entries || entries.length < 3) {
     return Response.json(
-      { error: 'You need at least 21 diary entries to generate a report.' },
+      { error: 'You need at least 3 diary entries to generate a report.' },
       { status: 400 }
     )
   }
